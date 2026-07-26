@@ -126,10 +126,11 @@
             <small>고등학교 2학년</small>
         </button>
 
-        <!-- 추가: 윤리 과목 -->
+        
+         <!-- 추가: 윤리 과목 -->
         <button class="subject-btn ethics-btn" data-subject="윤리">
-            ⚖️ 윤리
-            <small>고등학교 1~2학년</small>
+            ⚖️ 인문학과 윤리
+            <small>고등학교 2학년</small>
             <span class="new-badge">NEW</span>
         </button>
     </main>
@@ -148,7 +149,7 @@
                 const subject = btn.dataset.subject;
                 
                 // 윤리 과목이면 essay_rawls_nozick.html로 이동
-                if (subject === '윤리') {
+                if (subject === '인문학과 윤리') {
                     window.location.href = `essay_rawls_nozick.html?role=${role}`;
                 } 
                 // 다른 과목들은 기존 방식
