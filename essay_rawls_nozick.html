@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논술 평가 - 롤스-노직 정의론</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f1f5f9;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .essay-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        /* ═══════════════════════════════════════
+           헤더
+        ═══════════════════════════════════════ */
+        .header {
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1e3a8a;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        /* ═══════════════════════════════════════
+           로그인 섹션
+        ═══════════════════════════════════════ */
+        .auth-panel {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .login-btn {
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .login-btn:hover {
+            background: #172554;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ═══════════════════════════════════════
+           성취수준 선택
+        ═══════════════════════════════════════ */
+        .achievement-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+
+        .level-btn {
+            padding: 20px;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            background: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .level-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .level-btn.A {
+            color: #10b981;
+            border-color: #10b981;
+        }
+
+        .level-btn.A:hover {
+            background: #ecfdf5;
+        }
+
+        .level-btn.A.active {
+            background: #10b981;
+            color: white;
+        }
+
+        .level-btn.B {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .level-btn.B:hover {
+            background: #eff6ff;
+        }
+
+        .level-btn.B.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .level-btn.C {
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+
+        .level-btn.C:hover {
+            background: #fffbeb;
+        }
+
+        .level-btn.C.active {
+            background: #f59e0b;
+            color: white;
+        }
+
+        /* ═══════════════════════════════════════
+           문제 표시
+        ═══════════════════════════════════════ */
+        .question-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .question-box h3 {
+            color: #15803d;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .question-box p {
+            color: #334155;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* ═══════════════════════════════════════
+           체크리스트
+        ═══════════════════════════════════════ */
+        .checklist-section {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .checklist-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checklist-title .level-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .checklist-title.levelA .level-badge {
+            background: #d1fae5;
+            color: #10b981;
+        }
+
+        .checklist-title.levelB .level-badge {
+            background: #dbeafe;
+            color: #3b82f6;
+        }
+
+        .checklist-title.levelC .level-badge {
+            background: #fef3c7;
+            color: #f59e0b;
+        }
+
+        .checklist {
+            list-style: none;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .checklist-item label {
+            cursor: pointer;
+            flex: 1;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .checklist-item input[type="checkbox"]:checked + label {
+            color: #15803d;
+            font-weight: bold;
+        }
+
+        /* ═══════════════════════════════════════
+           학생 정보
+        ═══════════════════════════════════════ */
+        .student-info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-field label {
+            font-weight: bold;
+            color: #334155;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .info-field input {
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        /* ═══════════════════════════════════════
+           답안 작성
+        ═══════════════════════════════════════ */
+        .answer-section {
+            margin-bottom: 30px;
+        }
+
+        .answer-section label {
+            display: block;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .answer-section textarea {
+            width: 100%;
+            height: 300px;
+            padding: 15px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+
+        .word-count {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        /* ═══════════════════════════════════════
+           제출 버튼
+        ═══════════════════════════════════════ */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: #1e3a8a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: #172554;
+        }
+
+        .submit-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* ═══════════════════════════════════════
+           팁 박스
+        ═══════════════════════════════════════ */
+        .tip-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #92400e;
+        }
+
+        .tip-box strong {
+            color: #b45309;
+        }
+
+        /* ═══════════════════════════════════════
+           반응형
+        ═══════════════════════════════════════ */
+        @media (max-width: 768px) {
+            .achievement-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .student-info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="essay-wrapper">
+        <!-- 로그인 섹션 -->
+        <div id="auth-section" class="auth-panel">
+            <h2 style="color:#1e3a8a; margin-bottom:20px;">
+                <i class="fa-solid fa-lock"></i> 학생 인증
+            </h2>
+            <p style="margin-bottom:20px; color:#475569;">
+                구글 계정으로 로그인하여 논술을 시작하세요.
+            </p>
+            <button id="login-btn" class="login-btn">
+                <i class="fa-brands fa-google"></i> Google 계정으로 로그인
+            </button>
+        </div>
+
+        <!-- 메인 섹션 -->
+        <div id="essay-section" class="hidden">
+
+            <!-- 헤더 -->
+            <div class="header">
+                <h1>📝 논술 평가 시스템</h1>
+                <p>롤스와 노직의 정의론 비교</p>
+            </div>
+
+            <!-- 학생 정보 -->
+            <div class="student-info-grid">
+                <div class="info-field">
+                    <label>학년</label>
+                    <input type="number" id="grade" placeholder="1" min="1" max="3">
+                </div>
+                <div class="info-field">
+                    <label>반</label>
+                    <input type="text" id="class" placeholder="1반">
+                </div>
+                <div class="info-field">
+                    <label>번호</label>
+                    <input type="number" id="number" placeholder="1" min="1">
+                </div>
+                <div class="info-field">
+                    <label>이름</label>
+                    <input type="text" id="name" placeholder="홍길동">
+                </div>
+            </div>
+
+            <!-- 문제 표시 -->
+            <div class="question-box">
+                <h3>📌 문제</h3>
+                <p id="question-text">
+                    롤스의 정의론과 노직의 자유지상주의의 관점에서 현대 사회의 불평등 문제를 분석하고, 
+                    이 두 이론이 가지는 장단점을 평가한 후 자신의 관점을 제시하시오.
+                </p>
+            </div>
+
+            <!-- 성취수준 선택 -->
+            <div>
+                <h3 style="color:#1e293b; margin-bottom:15px; font-size:16px;">
+                    🎯 목표 성취수준을 선택하세요
+                </h3>
+                <div class="achievement-selector">
+                    <button class="level-btn A" data-level="A">
+                        <i class="fa-solid fa-star"></i><br>
+                        A등급<br>
+                        <small style="font-size:12px; font-weight:normal;">최우수</small>
+                    </button>
+                    <button class="level-btn B" data-level="B">
+                        <i class="fa-solid fa-star-half"></i><br>
+                        B등급<br>
+                        <small style="font-size:12px; font-weight:normal;">우수</small>
+                    </button>
+                    <button class="level-btn C" data-level="C">
+                        <i class="fa-solid fa-check"></i><br>
+                        C등급<br>
+                        <small style="font-size:12px; font-weight:normal;">기본</small>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 체크리스트 -->
+            <div id="checklist-container"></div>
+
+            <!-- 팁 -->
+            <div class="tip-box">
+                <strong>💡 팁:</strong> 위의 체크리스트를 보며 작성하세요. 
+                모든 항목을 확인할 때마다 당신의 답변이 그 등급에 더 가까워집니다!
+            </div>
+
+            <!-- 답안 입력 -->
+            <div class="answer-section">
+                <label>📝 당신의 논술 답변</label>
+                <textarea id="student-answer" 
+                    placeholder="롤스와 노직의 정의론을 비교·분석하고 자신의 의견을 작성하세요."></textarea>
+                <div class="word-count">
+                    단어 수: <span id="word-count">0</span>
+                </div>
+            </div>
+
+            <!-- 제출 버튼 -->
+            <button id="submit-btn" class="submit-btn">
+                <i class="fa-solid fa-paper-plane"></i> 논술 제출하기
+            </button>
+
+        </div>
+    </div>
+
+    <script>
+        /* ═══════════════════════════════════════
+           1. Firebase 초기화 및 인증
+        ═══════════════════════════════════════ */
+        const firebaseConfig = {
+             apiKey: "AIzaSyCPk6rLwFzYWw5UbhBZgYhkk8rKoZzwICc",
+             authDomain: "sehwa-essay-ethics.firebaseapp.com",
+             databaseURL: "https://sehwa-essay-ethics-default-rtdb.asia-southeast1.firebasedatabase.app",
+             projectId: "sehwa-essay-ethics",
+             storageBucket: "sehwa-essay-ethics.firebasestorage.app",
+             messagingSenderId: "229548472044",
+             appId: "1:229548472044:web:5e2414a1b7debe06f797c9",
+             measurementId: "G-YVPNVG0WHG"
+  };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        let currentUid = null;
+        let selectedLevel = null;
+
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider)
+                .then(result => {
+                    currentUid = result.user.uid;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('essay-section').classList.remove('hidden');
+                })
+                .catch(err => alert('로그인 실패: ' + err.message));
+        });
+
+        /* ═══════════════════════════════════════
+           2. 성취수준별 가이드 데이터
+        ═══════════════════════════════════════ */
+        const ACHIEVEMENT_LEVELS = {
+            'A': {
+                title: '최우수 (A등급)',
+                color: '#10b981',
+                icon: '🌟',
+                checklist: [
+                    '✅ 롤스의 원초적 입장 개념을 정확히 설명했다',
+                    '✅ 노직의 자유지상주의를 정확히 설명했다',
+                    '✅ 두 입장의 근본적 차이점을 명확히 비교했다',
+                    '✅ 정의관의 철학적 가정을 분석했다',
+                    '✅ 현실 문제(불평등, 빈곤 등)에 각각 어떻게 적용되는지 설명했다',
+                    '✅ 두 이론의 장단점을 균형있게 평가했다',
+                    '✅ 결론: 자신의 입장을 철학적 근거로 정당화했다'
+                ]
+            },
+            'B': {
+                title: '우수 (B등급)',
+                color: '#3b82f6',
+                icon: '⭐',
+                checklist: [
+                    '✅ 롤스의 원초적 입장을 기본적으로 설명했다',
+                    '✅ 노직의 자유지상주의를 기본적으로 설명했다',
+                    '✅ 두 입장의 차이점을 명확히 구분했다',
+                    '✅ 한 가지 현실 사례(불평등, 빈곤, 의료 등)에 적용해 설명했다',
+                    '✅ 자신의 관점에서 평가했다'
+                ]
+            },
+            'C': {
+                title: '기본 (C등급)',
+                color: '#f59e0b',
+                icon: '✓',
+                checklist: [
+                    '✅ 롤스가 뭔지 대략적으로 설명했다',
+                    '✅ 노직이 뭔지 대략적으로 설명했다',
+                    '✅ 둘이 다르다는 것을 명확히 했다',
+                    '✅ 자신의 의견을 제시했다'
+                ]
+            }
+        };
+
+        /* ═══════════════════════════════════════
+           3. 성취수준 선택 이벤트
+        ═══════════════════════════════════════ */
+        document.querySelectorAll('.level-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                selectedLevel = e.currentTarget.dataset.level;
+
+                // 기존 활성화 제거
+                document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('active'));
+
+                // 새로운 활성화
+                e.currentTarget.classList.add('active');
+
+                // 체크리스트 표시
+                displayChecklist(selectedLevel);
+            });
+        });
+
+        function displayChecklist(level) {
+            const data = ACHIEVEMENT_LEVELS[level];
+            const container = document.getElementById('checklist-container');
+
+            container.innerHTML = `
+                <div class="checklist-section">
+                    <div class="checklist-title levelA">
+                        ${data.icon}
+                        ${data.title}
+                        <span class="level-badge">${level}등급</span>
+                    </div>
+                    <ul class="checklist">
+                        ${data.checklist.map((item, idx) => `
+                            <li class="checklist-item">
+                                <input type="checkbox" id="check-${level}-${idx}">
+                                <label for="check-${level}-${idx}">${item}</label>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+
+            // 체크박스 이벤트
+            document.querySelectorAll(`#checklist-container input[type="checkbox"]`).forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    const checked = document.querySelectorAll(`#checklist-container input:checked`).length;
+                    const total = document.querySelectorAll(`#checklist-container input`).length;
+                    console.log(`${checked}/${total} 항목 완료`);
+                });
+            });
+        }
+
+        /* ═══════════════════════════════════════
+           4. 단어 수 계산
+        ═══════════════════════════════════════ */
+        document.getElementById('student-answer').addEventListener('input', (e) => {
+            const text = e.target.value;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+            document.getElementById('word-count').textContent = words;
+        });
+
+        /* ═══════════════════════════════════════
+           5. 제출
+        ═══════════════════════════════════════ */
+        document.getElementById('submit-btn').addEventListener('click', () => {
+            const grade = document.getElementById('grade').value;
+            const classVal = document.getElementById('class').value;
+            const number = document.getElementById('number').value;
+            const name = document.getElementById('name').value;
+            const answer = document.getElementById('student-answer').value.trim();
+
+            if (!grade || !classVal || !number || !name) {
+                alert('학생 정보를 모두 입력하세요!');
+                return;
+            }
+
+            if (!answer) {
+                alert('답안을 작성하세요!');
+                return;
+            }
+
+            if (!selectedLevel) {
+                alert('목표 성취수준을 선택하세요!');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 제출 중...';
+
+            // Firebase에 저장
+            const studentKey = `${grade}-${classVal}-${number}_${name}`;
+            const submissionRef = database.ref(`essays/rawls-nozick/${studentKey}/submissions`);
+
+            submissionRef.push({
+                answer: answer,
+                targetLevel: selectedLevel,
+                wordCount: document.getElementById('student-answer').value.trim().split(/\s+/).length,
+                submittedAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                alert(`논술이 제출되었습니다!\n목표: ${selectedLevel}등급`);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 논술 제출하기';
+                document.getElementById('student-answer').value = '';
+                document.getElementById('word-count').textContent = '0';
+            }).catch(err => {
+                alert('제출 실패: ' + err.message);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 논술 제출하기';
+            });
+        });
+    </script>
+
+</body>
+
+</html>
