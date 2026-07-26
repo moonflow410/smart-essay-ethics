@@ -89,6 +89,43 @@
             background: #172554;
         }
 
+        .login-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         .hidden {
             display: none !important;
         }
@@ -508,9 +545,15 @@
         <div id="auth-section" class="auth-panel">
             <h2>학습을 시작하려면 로그인하세요</h2>
             <p>학교 Google 계정으로 로그인하면 답안이 자동으로 저장됩니다.</p>
+            
+            <div id="error-message" class="error-message"></div>
+            
             <button id="login-btn" class="login-btn">
                 <i class="fa-brands fa-google"></i> Google로 로그인
             </button>
+            <p style="margin-top: 30px; font-size: 12px; color: #94a3b8;">
+                로그인이 안 되시면 교사에게 알려주세요.
+            </p>
         </div>
 
         <!-- 실제 학습 섹션 -->
@@ -845,9 +888,25 @@
             measurementId: "G-YVPNVG0WHG"
         };
 
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log('Firebase initialized successfully');
+        } catch (error) {
+            console.error('Firebase initialization error:', error);
+        }
+
         const auth = firebase.auth();
         const database = firebase.database();
+
+        // 인증 상태 모니터링
+        auth.onAuthStateChanged(user => {
+            console.log('Auth state changed:', user ? user.uid : 'Not logged in');
+            if (user) {
+                currentUid = user.uid;
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('essay-section').style.display = 'block';
+            }
+        });
 
         let currentUid = null;
         let currentStep = 1;
@@ -855,15 +914,62 @@
         /* ═══════════════════════════════════════
            로그인
         ═══════════════════════════════════════ */
+        function showErrorMessage(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            console.error('Login Error:', message);
+        }
+
+        function hideErrorMessage() {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.remove('show');
+        }
+
         document.getElementById('login-btn').addEventListener('click', () => {
+            hideErrorMessage();
+            const loginBtn = document.getElementById('login-btn');
+            loginBtn.disabled = true;
+            
             const provider = new firebase.auth.GoogleAuthProvider();
+            provider.addScope('profile');
+            provider.addScope('email');
+
             auth.signInWithPopup(provider)
                 .then(result => {
+                    console.log('Login successful:', result.user.uid);
                     currentUid = result.user.uid;
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('essay-section').classList.remove('hidden');
+                    
+                    // 상태 변경
+                    const authSection = document.getElementById('auth-section');
+                    const essaySection = document.getElementById('essay-section');
+                    
+                    authSection.style.display = 'none';
+                    essaySection.style.display = 'block';
+                    essaySection.classList.remove('hidden');
+                    
+                    // 스크롤
+                    window.scrollTo(0, 0);
                 })
-                .catch(err => alert('로그인 실패: ' + err.message));
+                .catch(err => {
+                    console.error('Login error code:', err.code);
+                    console.error('Login error message:', err.message);
+                    
+                    loginBtn.disabled = false;
+                    
+                    // 에러별 메시지
+                    let errorMsg = '로그인 실패: ' + err.message;
+                    
+                    if (err.code === 'auth/unauthorized-domain') {
+                        errorMsg = '🔒 이 도메인이 아직 허용되지 않았습니다. 교사에게 연락하세요.';
+                    } else if (err.code === 'auth/popup-blocked') {
+                        errorMsg = '⚠️ 팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도하세요.';
+                    } else if (err.code === 'auth/cancelled-popup-request') {
+                        errorMsg = '❌ 로그인이 취소되었습니다. 다시 시도하세요.';
+                    }
+                    
+                    showErrorMessage(errorMsg);
+                });
         });
 
         /* ═══════════════════════════════════════
