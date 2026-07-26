@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>과목 선택</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f1f5f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h2 {
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .role-indicator {
+            display: inline-block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #475569;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 4px 14px;
+            margin-bottom: 20px;
+        }
+
+        .subject-btn {
+            display: block;
+            width: 100%;
+            padding: 20px;
+            margin: 15px 0;
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e3a8a;
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .subject-btn small {
+            display: block;
+            font-size: 13px;
+            font-weight: normal;
+            margin-top: 4px;
+            color: #64748b;
+        }
+
+        .subject-btn:hover,
+        .subject-btn:focus-visible {
+            background: #1e3a8a;
+            color: white;
+            border-color: #1e3a8a;
+        }
+
+        .subject-btn:hover small,
+        .subject-btn:focus-visible small {
+            color: #bfdbfe;
+        }
+
+        /* 윤리 버튼 특별 스타일 */
+        .subject-btn.ethics-btn {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #b45309;
+        }
+
+        .subject-btn.ethics-btn:hover,
+        .subject-btn.ethics-btn:focus-visible {
+            background: #f59e0b;
+            color: white;
+            border-color: #f59e0b;
+        }
+
+        .subject-btn.ethics-btn:hover small,
+        .subject-btn.ethics-btn:focus-visible small {
+            color: #fef3c7;
+        }
+
+        .new-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 6px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h2>📚 학습하실 과목을 선택해 주세요</h2>
+        <span class="role-indicator" id="role-indicator"></span>
+        
+        <!-- 기존 과목 -->
+        <button class="subject-btn" data-subject="통합사회">
+            🌍 통합사회
+            <small>고등학교 1학년</small>
+        </button>
+        
+        <button class="subject-btn" data-subject="사회와 문화">
+            👥 사회와 문화
+            <small>고등학교 2학년</small>
+        </button>
+
+        <!-- 추가: 윤리 과목 -->
+        <button class="subject-btn ethics-btn" data-subject="윤리">
+            ⚖️ 윤리
+            <small>고등학교 1~2학년</small>
+            <span class="new-badge">NEW</span>
+        </button>
+    </main>
+
+    <script>
+        // role은 'teacher' 또는 'student'만 허용
+        const urlParams = new URLSearchParams(window.location.search);
+        const role = urlParams.get('role') === 'teacher' ? 'teacher' : 'student';
+
+        document.getElementById('role-indicator').textContent =
+            role === 'teacher' ? '🖥️ 교사용 모니터링 모드' : '✏️ 학생용 시험 모드';
+
+        // 과목 버튼 클릭 이벤트
+        document.querySelectorAll('.subject-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const subject = btn.dataset.subject;
+                
+                // 윤리 과목이면 essay_rawls_nozick.html로 이동
+                if (subject === '윤리') {
+                    window.location.href = `essay_rawls_nozick.html?role=${role}`;
+                } 
+                // 다른 과목들은 기존 방식
+                else {
+                    const targetPage = role === 'teacher' ? 'teacher_monitor.html' : 'student_quiz.html';
+                    window.location.href = `${targetPage}?subject=${encodeURIComponent(subject)}`;
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
